@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test</title>
+<style>
+body { font-family:'Segoe UI',sans-serif; background:linear-gradient(135deg,#667eea,#764ba2); padding:30px; }
+h2 { color:#fff; text-align:center; margin-bottom:30px; }
+.question{ background:#fff; padding:20px; margin-bottom:20px; border-radius:12px; box-shadow:0 8px 20px rgba(0,0,0,.1); }
+.question p{ font-weight:600; margin-bottom:10px; }
+label{ display:block; padding:8px 12px; margin:6px 0; border-radius:8px; cursor:pointer; transition:background .2s; }
+label:hover{ background:#f0f3ff; }
+input[type="radio"]{ margin-right:8px; }
+button{ display:block; margin:30px auto; padding:12px 30px; font-size:16px; border:none; border-radius:8px; background:#4c51bf; color:#fff; font-weight:bold; }
+button:hover{ background:#3730a3; }
+.correct{ background:#d4edda !important; color:#155724; font-weight:bold; }
+.wrong{ background:#f8d7da !important; color:#721c24; font-weight:bold; }
+.result{ text-align:center; font-size:20px; margin-top:20px; color:#fff; font-weight:bold; }
+
+@media (max-width:600px){
+  body{ padding:14px; }
+  h2{ font-size:22px; margin-bottom:16px; }
+  .question{ padding:14px; border-radius:10px; }
+  .question p{ font-size:16px; line-height:1.35; }
+  label{ padding:10px 12px; font-size:15px; }
+  button{ width:100%; padding:14px 16px; font-size:16px; }
+  .result{ font-size:18px; }
+}
+</style>
+</head>
+<body>
+
+<h2>Test</h2>
+<form id="quiz"></form>
+<button type="button" id="checkBtn">Yoxla</button>
+<div class="result" id="result"></div>
+
+<script>
+/** Fisher–Yates shuffle (Safari üçün stabil) */
+function shuffleInPlace(arr){
+  for(let i = arr.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+const questions = [
+  {
+    id: 1,
+    text: "Mikroiqtisadiyyat nöqteyi-nəzərindən iqtisadiyyatın başlıca problemi ibarətdir:",
+    answers: [
+      { text: "resursların səmərəli bölgüsünü təmin etməkdən", correct: false },
+      { text: "vətəndaşlara layiqli həyat səviyyəsi təmin etməkdən", correct: false },
+      { text: "inflyasiya və işsizliyin aradan qaldırılmasından", correct: false },
+      { text: "qabaqcıl texnologiyaların tətbiqini təmin etməkdən", correct: false },
+      { text: "bütün sadalananlar düzdür", correct: false },
+    ]
+  },
+  {
+    id: 2,
+    text: "Gəlirlərin bazar bölgüsü təmin etmir",
+    answers: [
+      { text: "sosial ədaləti", correct: false },
+      { text: "faktor gəlirlərin alınmasını", correct: false },
+      { text: "iqtisadi ədaləti", correct: false },
+      { text: "yüksək gəlirlərin alınmasını", correct: false },
+      { text: "səmərəliliyi", correct: false },
+    ]
+  },
+  {
+    id: 3,
+    text: "Son faydalılıq - bu:",
+    answers: [
+      { text: "istehlakçının əlavə nemət vahidinin istehlakından aldığı məmnunluq", correct: false },
+      { text: "istehlakçının almaq istədiyi faydalılığın maksimal səviyyəsi", correct: false },
+      { text: "müəyyən miqdar nemətin istehlakından əldə edilə biləcək maksimum faydalılıq", correct: false },
+      { text: "müəyyən miqdarda pul vəsaitinin xərclənməsi müqabilində əldə edilə biləcək maksimum faydalılıq", correct: false },
+      { text: "ümumi faydalıq", correct: false },
+    ]
+  },
+  {
+    id: 4,
+    text: "Eynitipli məhsul istehsal edən firmaların birləşməsi - bu:",
+    answers: [
+      { text: "üfüqi bərləşmə", correct: false },
+      { text: "şaquli birləşmə", correct: false },
+      { text: "konqlomerat", correct: false },
+      { text: "diversifikasiya", correct: false },
+      { text: "əks-mərkəzləşdirmə", correct: false },
+    ]
+  },
+  {
+    id: 5,
+    text: "Universitetdə tələbənin təhsil almasının alternativ qiymətliliyi əks olunur",
+    answers: [
+      { text: "təhsili atıb işləyərkən əldə edəcək maksimum əməkhaqqı", correct: false },
+      { text: "təqaüdün miqdarının artması ilə insanların daha az işləyərək mənfəətlərini artırmaları", correct: false },
+      { text: "orta statistik mütəxəssisin təhsilinə dövlətin xərcləri", correct: false },
+      { text: "tələbənin saxlanmasına valideynlərin çəkdiyi xərclər", correct: false },
+      { text: "təhsilini bitirəndən sonra alınan gəlirlər", correct: false },
+    ]
+  },
+  {
+    id: 6,
+    text: "Hər bir məhsul vahidini eyni qiymətə satan inhisar- bu",
+    answers: [
+      { text: "sadə inhisardır", correct: false },
+      { text: "təbii inhisardır", correct: false },
+      { text: "dövlət inhisarıdır", correct: false },
+      { text: "mönopsoniyadır", correct: false },
+      { text: "oliqopoliyadır", correct: false },
+    ]
+  },
+  {
+    id: 7,
+    text: "İnkişaf etmiş əmtəə istehsalının sadə əmtəə istehsalından fərqi ondan ibarətdir ki;",
+    answers: [
+      { text: "yalnız əmək məhsulları deyil, həmçinin istehsal amilləri də əmtəədir", correct: false },
+      { text: "istehsal öz tələbatlarının ödənilməsi məqsədilə həyata keçirilir", correct: false },
+      { text: "nemət və xidmətlərin istehsalı satış məqsədilə həyata keçirilir", correct: false },
+      { text: "ixtisaslaşma olmur sadəcə əmtəə məhsullarının bazarda artması ilə meydana gəlir", correct: false },
+      { text: "əmək məhsulları əmtəədir", correct: false },
+    ]
+  },
+  {
+    id: 8,
+    text: "İstehlakçı davranışı qaydası başqa cür adlanır:",
+    answers: [
+      { text: "Qossenin ikinci qanunu", correct: false },
+      { text: "Qossenin birinci qanunu", correct: false },
+      { text: "Qiffen paradoksu", correct: false },
+      { text: "tələb qanunu", correct: false },
+      { text: "dəyər qanunu", correct: false },
+    ]
+  },
+  {
+    id: 9,
+    text: "Hansı nəzəriyyə gəlirləri bölüşdürərkən ən pis vəziyyətdə olanların rifahına xüsusi fikir verir:",
+    answers: [
+      { text: "eqalitarizm", correct: false },
+      { text: "utilitarizm", correct: false },
+      { text: "libertarizm", correct: false },
+      { text: "monetarizm", correct: false },
+      { text: "bunlardan heç biri", correct: false },
+    ]
+  },
+  {
+    id: 10,
+    text: "Maliyyə investisiyaları – bu:",
+    answers: [
+      { text: "vəsaitin qiymətli kağızlara qoyuluşu", correct: false },
+      { text: "Maliyyə Nazirliyinin həyata keçirdiyi investisiyalar", correct: false },
+      { text: "bank krediti hesabına həyata keçirilən investisiyalar", correct: false },
+      { text: "dövlət investisiyaları", correct: false },
+      { text: "qeyri-dövlət investisiyaları", correct: false },
+    ]
+  },
+  {
+    id: 11,
+    text: "Məhsulun istehsalı ilə deyil, onu müşayiət edən məsrəflərlə əlaqədar xərclər adlanır:",
+    answers: [
+      { text: "transaksion", correct: false },
+      { text: "hesabi", correct: false },
+      { text: "buraxılmış imkanların xərcləri", correct: false },
+      { text: "iqtisadi", correct: false },
+      { text: "son hədd", correct: false },
+    ]
+  },
+  {
+    id: 12,
+    text: "Əgər əmtəənin qiymətinin 5% düşməsi əmtəənin təklifinin 8% azalmasına səbəb olursa, onda bu əmtəənin təklifi:",
+    answers: [
+      { text: "elastikdir", correct: false },
+      { text: "qeyri-elastikdir", correct: false },
+      { text: "mütləq elastikdir", correct: false },
+      { text: "mütləq qeyri-elastikdir", correct: false },
+      { text: "vahid elastikliyə malikdir", correct: false },
+    ]
+  },
+  {
+    id: 13,
+    text: "Dövlətin sosial funksiyası nəzərə tutmur:",
+    answers: [
+      { text: "iqtisad elminin sosial-institusional istiqamətinin prinsipləri əsasında iqtisadi siyasətin həyata keçirilməsini", correct: false },
+      { text: "sosial sahənin genişləndirilməsini", correct: false },
+      { text: "əhalinin sosial müdafiə olunan tərkib hissəsinin genişləndirilməsini", correct: false },
+      { text: "sosial təminat xidmətlərinin keyfiyyət və kəmiyyətinin artırılmasını", correct: false },
+      { text: "bütün yuxarıda sadalananlar nəzərə alınır", correct: false },
+    ]
+  },
+  {
+    id: 14,
+    text: "“Əmtəələrin differensiallaşdırılması” anlayışı dedikdə nə başa düşülür:",
+    answers: [
+      { text: "rəqabət əmtəələrinin sırasında firmanın öz əmtəəsini fərqləndirməsi", correct: false },
+      { text: "firmanın istehsal məhsulun istehlak keyfiyyətlərinin yüksəldilməsinə çalışması", correct: false },
+      { text: "firmanın istehsal etdiyi əmtəənin konstruksiyasında dəyişiklik edilməsi", correct: false },
+      { text: "firmanın istehsal etdiyi məhsulların çeşidinin genişləndirilməsi", correct: false },
+      { text: "doğru cavab yoxdur", correct: false },
+    ]
+  },
+  {
+    id: 15,
+    text: "Əgər iqtisadi subyekt həmişə əldə olunmuş gəliri gözlənilmədən artıq qiymətləndirirsə bu:",
+    answers: [
+      { text: "risklə qeyri-meyillilik", correct: false },
+      { text: "riskə qarşı biganəlik", correct: false },
+      { text: "riskə meyillilik", correct: false },
+      { text: "riskdən müdafiə", correct: false },
+      { text: "riskin olmaması", correct: false },
+    ]
+  },
+  {
+    id: 16,
+    text: "Azad iqtisadi zonalar nə üçün yaradılır?",
+    answers: [
+      { text: "xarici kapitalı cəlb etmək üçün", correct: false },
+      { text: "azad rəqabəti təmin etmək üçün", correct: false },
+      { text: "müxtəlif mülkiyyət formalarının inkişafı üçün", correct: false },
+      { text: "vergi sisteminin təkmilləşdirilməsi üçün", correct: false },
+      { text: "bütün sadalananlar üçün", correct: false },
+    ]
+  },
+  {
+    id: 17,
+    text: "Kim öz konsepsiyasında əmtəə dəyərinin və qiymətinin müəyyənləşdirilməsində xərclər nəzəriyyəsi və faydalılıq nəzəriyyəsini birləşdirmişdir:",
+    answers: [
+      { text: "A. Marşall", correct: false },
+      { text: "A. Smit", correct: false },
+      { text: "D. Rikardo", correct: false },
+      { text: "K. Menqer", correct: false },
+      { text: "L. Valras", correct: false },
+    ]
+  },
+  {
+    id: 18,
+    text: "Mülkiyyət obyektlərinin ictimai mülkiyyətdən xüsusi mülkiyyətə keçməsi prosesi:",
+    answers: [
+      { text: "özəlləşdirmə", correct: false },
+      { text: "inventerlaşma", correct: false },
+      { text: "milliləşdirmə", correct: false },
+      { text: "müsadirə", correct: false },
+      { text: "spesifikasiya", correct: false },
+    ]
+  },
+  {
+    id: 19,
+    text: "İctimai təkrar istehsalın aşağıdakı tipləri mövcuddur:",
+    answers: [
+      { text: "sadə və geniş", correct: false },
+      { text: "iqtisadi və qeyri-iqtisadi", correct: false },
+      { text: "məhsuldar və qeyri-məhsuldar", correct: false },
+      { text: "maddi və qeyri-maddi", correct: false },
+      { text: "nemətlər istehsalı və xidmətlər istehsalı", correct: false },
+    ]
+  },
+  {
+    id: 20,
+    text: "Qiymət üzrə tələbin çarpaz elastikliyi nəyi göstərir?",
+    answers: [
+      { text: "digər əmtəənin qiymətinin dəyişməsindən asılı olaraq bir əmtəəyə tələbin həcminin dəyişməsi", correct: false },
+      { text: "istehlakçıların gəlirlərinin dəyişməsindən asılı olaraq qiymətlərin dəyişməsi", correct: false },
+      { text: "tələbin əmtəə qiymətindən və istehlakçıların gəlirlərindən asılılığı", correct: false },
+      { text: "bir-birini qarşılıqlı surətdə tamamlayan əmtəələrin qiymətlərinin dəyişməsi", correct: false },
+      { text: "bir-birini qarşılıqlı tamamlayan əmtəələrə tələbin həcminin dəyişməsi", correct: false },
+    ]
+  },
+  {
+    id: 21,
+    text: "İnhisarçı firma bacarır:",
+    answers: [
+      { text: "maksimum mənfəət verə bilən məhsul buraxılışı və qiymət kombinasiyasını seçə", correct: false },
+      { text: "öz əmtəəsini istənilən qiymətə sata", correct: false },
+      { text: "istənilən həcmdə məhsul sata bilir və bazardakı məhsulları istədiyi kimi qiymətləndirə bilir", correct: false },
+      { text: "tələbin elastikliyinə təsir edə", correct: false },
+      { text: "istənilən həcmdə əmtəəni istənilən qiymətə satmaq", correct: false },
+    ]
+  },
+  {
+    id: 22,
+    text: "Əmtəə və xidmətləri istehsalı və reallaşdırılması yolu ilə istehsal amillərinin istifadəsi vasitəsilə öz mənafelərini reallaşdıran təsərrüfat həlqəsi-bu:",
+    answers: [
+      { text: "firma", correct: false },
+      { text: "ev təsərrüfatı", correct: false },
+      { text: "dövlət", correct: false },
+      { text: "bank", correct: false },
+      { text: "sadalananlardan heç biri", correct: false },
+    ]
+  },
+  {
+    id: 23,
+    text: "Tədavül üçün zəruri olan pulun miqdarını bu formulla müəyyən etmək olar:",
+    answers: [
+      { text: "M = P·Q : V", correct: false },
+      { text: "V = P + Q : M", correct: false },
+      { text: "M = P·V - Q", correct: false },
+      { text: "M = V - P·Q", correct: false },
+      { text: "P = M·V : Q", correct: false },
+    ]
+  },
+  {
+    id: 24,
+    text: "Hansı ölkələr üçün müasir bazar təsərrüfatının korporativ modeli səciyyəvidir?",
+    answers: [
+      { text: "Yaponiya, İsveç", correct: false },
+      { text: "Almaniya, Fransa", correct: false },
+      { text: "ABŞ, Kanada", correct: false },
+      { text: "Çin, Rusiya", correct: false },
+      { text: "Azərbaycan, Ukrayna", correct: false },
+    ]
+  },
+  {
+    id: 25,
+    text: "Riyaziyyat üzrə dərslik və detektiv məcmuəsi belə, çarpaz elastiklik əmsalına malikdir:",
+    answers: [
+      { text: "0-a yaxın olan", correct: false },
+      { text: "mənfi işarəli", correct: false },
+      { text: "sonsuzluğa cəhd edən", correct: false },
+      { text: "1-ə bərabər olan", correct: false },
+      { text: "1-dən böyük", correct: false },
+    ]
+  },
+  {
+    id: 26,
+    text: "Dövlətin minimal funksiyalara aid deyil:",
+    answers: [
+      { text: "antitsiklik tənzimlənmə", correct: false },
+      { text: "antiinhisar tənzimlənmə", correct: false },
+      { text: "xarici effektlərin tənzimlənməsi", correct: false },
+      { text: "pul tədavülünün səmərəli təşkili", correct: false },
+      { text: "ictimai nemət istehsalının təmin edilməsi", correct: false },
+    ]
+  },
+  {
+    id: 27,
+    text: "Düzgün müddəanı tapın:",
+    answers: [
+      { text: "ümumi sabit xərclər istehsal həcminin dəyişməsi ilə dəyişmir", correct: false },
+      { text: "istehsalın həcmi nə qədər böyükdürsə ümumi sabit xərclər bir o qədər azdır", correct: false },
+      { text: "iqtisadi mənfəət qeyri-aşkar xərcləri təcəssüm etdirir", correct: false },
+      { text: "iqtisadi mənfəət adətən mühasibat mənfəətini üstələyir", correct: false },
+      { text: "son hədd xərcləri məhsul buraxılışının həcminə bölünmüş ümumi xərclərə bərabərdir", correct: false },
+    ]
+  },
+  {
+    id: 28,
+    text: "Hansı nəzəriyyəyə görə siyasi sfera bazarın nəzəri müxtəlifliklərindən biridir:",
+    answers: [
+      { text: "ictimai seçim", correct: false },
+      { text: "istehlakçı davranışı", correct: false },
+      { text: "son hədd faydalılığı", correct: false },
+      { text: "müqayisəli üstünlüklər", correct: false },
+      { text: "izafi dəyər", correct: false },
+    ]
+  },
+  {
+    id: 29,
+    text: "Əməyin ödənilməsinin son hədd xərcləri:",
+    answers: [
+      { text: "bu əlavə işçinin cəlb edilməsində əməyə ümumi xərclərin artımıdır", correct: false },
+      { text: "bu məhsul istehsalı həcminin artımında məhsul vahidinə düşən sabit xərclərin artımıdır", correct: false },
+      { text: "inhisarçı üçün mütləq qeyri-elastikdir", correct: false },
+      { text: "bu məhsul istehsalı həcminin artımında məhsul vahidinə düşən dəyişən xərclərin artımıdır", correct: false },
+      { text: "bu ümumi və orta xərclər arasında fərqdir", correct: false },
+    ]
+  },
+  {
+    id: 30,
+    text: "Bazar infrastrukturuna aiddir:",
+    answers: [
+      { text: "sadalanan hamısı", correct: false },
+      { text: "yarmarkalar", correct: false },
+      { text: "valyuta bircaları", correct: false },
+      { text: "reklam agentliyi", correct: false },
+      { text: "banklar", correct: false },
+    ]
+  },
+  {
+    id: 31,
+    text: "Məhdudluq budur:",
+    answers: [
+      { text: "insan tələbatlarının tam ödənilməsinin qeyri-mümkünlüyünü əks etdirən konsepsiya", correct: false },
+      { text: "iqtisadi resursların xarakteristikasından asılı olaraq cəmiyyətin ehtiyaclarının qarşılanmasının monopoliyalaşdırılması", correct: false },
+      { text: "ancaq sənayeləşmə sisteminin səciyyəsi", correct: false },
+      { text: "inzibati-amirlik sisteminin səciyyəsi", correct: false },
+      { text: "təkrar istehsalın xarakteristikası", correct: false },
+    ]
+  },
+  {
+    id: 32,
+    text: "Heç biri əmtəənin bazar qiymətinə təsir edə bilməyən eyni məhsul istehsal edən çoxsaylı firmaların bazar quruluşu - bu:",
+    answers: [
+      { text: "təkmil rəqabət", correct: false },
+      { text: "inhisarçı rəqabət", correct: false },
+      { text: "inhisar", correct: false },
+      { text: "oliqopoliya", correct: false },
+      { text: "duopoliya", correct: false },
+    ]
+  },
+  {
+    id: 33,
+    text: "İnhisarçı firma üçün tələb qrafiki və son hədd gəliri qrafiki necə yerləşmişlər?",
+    answers: [
+      { text: "tələb qrafiki son hədd gəliri qrafikindən yuxarıdan keçir", correct: false },
+      { text: "üst-üstə düşür", correct: false },
+      { text: "tarazlıq nöqtəsində kəsişirlər", correct: false },
+      { text: "tələb qrafiki son hədd gəliri qrafikindən aşağıda keçir", correct: false },
+      { text: "qrafiklər paraleldir", correct: false },
+    ]
+  },
+  {
+    id: 34,
+    text: "Təkmil rəqabətli firmanın ümumi gəlir əyrisi necə olur?",
+    answers: [
+      { text: "koordinatın başlanğıcından çıxan müsbət meyilli xətt", correct: false },
+      { text: "mənfi meyilli əyri", correct: false },
+      { text: "müsbət meyilli əyri", correct: false },
+      { text: "əmtəənin qiyməti ilə üst-üstə düşən düz üfüqi", correct: false },
+      { text: "düz şaquli", correct: false },
+    ]
+  },
+  {
+    id: 35,
+    text: "Xalis ictimai nemətə tələb müəyyən olunur:",
+    answers: [
+      { text: "bütün istehlakçılar üçün bu nemətin fərdi son hədd faydalılıqlarının cəmi ilə", correct: false },
+      { text: "onun istehsal məsrəfləri ilə", correct: false },
+      { text: "mövcud qiymətlər səviyyəsində onun son hədd faydalılıqlarının həcmi ilə", correct: false },
+      { text: "həmin nemətin istehlakçılarının kəmiyyəti ilə", correct: false },
+      { text: "bütün sadalananlarla", correct: false },
+    ]
+  },
+  {
+    id: 36,
+    text: "İstehsal funksiyası göstərir:",
+    answers: [
+      { text: "istehsalın həcminin istifadə olunan istehsal amillərinə görə asılılığını", correct: false },
+      { text: "istehsal həcminin dəyişməsi ilə xərclər və mənfəətin necə dəyişdiyini", correct: false },
+      { text: "qiymətin istehsal xərclərindən asılılığını", correct: false },
+      { text: "istehsal amilləri arasındakı qarşılıqlı əlaqəni", correct: false },
+      { text: "hansı texnologiyanın istifadə edildiyini", correct: false },
+    ]
+  },
+  {
+    id: 37,
+    text: "İctimai nemət deyil:",
+    answers: [
+      { text: "telefon şəbəkəsinin fəaliyyəti", correct: false },
+      { text: "hüquq-mühafizə orqanlarının fəaliyyəti", correct: false },
+      { text: "fundamental elm", correct: false },
+      { text: "küçələrin işıqlandırılması", correct: false },
+      { text: "ölkənin müdafiəsi", correct: false },
+    ]
+  },
+  {
+    id: 38,
+    text: "Firmanın mülkiyyəti olan resursların istifadəsinin alternativ xərcləri – bu:",
+    answers: [
+      { text: "qeyri-aşkar xərclərdir", correct: false },
+      { text: "iqtisadi xərclərdir", correct: false },
+      { text: "qısamüddətli dövr üçün nəzərdə tutulmuş orta xərclərdir", correct: false },
+      { text: "mühasibat xərcləridir", correct: false },
+      { text: "mühasibat hesabatında əks olunmayan xərclərdir", correct: false },
+    ]
+  },
+  {
+    id: 39,
+    text: "Torpaq qiymətinin ümumi meyli:",
+    answers: [
+      { text: "artmağa", correct: false },
+      { text: "azalmağa", correct: false },
+      { text: "müxtəlif keyfiyyətli sahələrin qiymətlərinin bərabərləşməsinə", correct: false },
+      { text: "sabitləşməyə", correct: false },
+      { text: "müxtəlif keyfiyyətli sahələrin qiymətlərindəki fərqlərin artmasına", correct: false },
+    ]
+  },
+  {
+    id: 40,
+    text: "Eyni keyfiyyətli bütün torpaq sahələri üçün torpaq rentası eynidirsə bu onu göstərir ki:",
+    answers: [
+      { text: "torpaq bazarında tarazlıqdır", correct: false },
+      { text: "differensial renta I mövcud deyil", correct: false },
+      { text: "differensial renta II mövcud deyil", correct: false },
+      { text: "mütləq renta mövcud deyil", correct: false },
+      { text: "(variant mətndə yoxdur) — 40-cı sualın E variantını da göndər", correct: false },
+    ]
+  },
+];
+
+let rendered = []; // render zamanı qarışmış versiya
+
+function renderQuiz(){
+  const quiz = document.getElementById("quiz");
+  quiz.innerHTML = "";
+
+  rendered = questions.map(q => ({
+    id: q.id,
+    text: q.text,
+    answers: shuffleInPlace(q.answers.map(a => ({...a}))) // cavablar qarışsın
+  }));
+
+  shuffleInPlace(rendered); // suallar qarışsın
+
+  rendered.forEach((q, index) => {
+    const div = document.createElement("div");
+    div.className = "question";
+    div.innerHTML = `<p>${q.id}. ${q.text}</p>`;
+
+    q.answers.forEach((a, ai) => {
+      const inputId = `q${index}_a${ai}`;
+      div.innerHTML += `
+        <label for="${inputId}">
+          <input id="${inputId}" type="radio" name="q${index}" value="${a.correct ? "1" : "0"}">
+          ${a.text}
+        </label>`;
+    });
+
+    quiz.appendChild(div);
+  });
+
+  document.getElementById("result").textContent = "";
+}
+
+function checkAnswers(){
+  let score = 0;
+  const questionDivs = document.querySelectorAll(".question");
+
+  questionDivs.forEach((qDiv, qi) => {
+    const radios = qDiv.querySelectorAll('input[type="radio"]');
+
+    radios.forEach(radio => {
+      const label = radio.parentElement;
+
+      if(radio.checked){
+        if(radio.value === "1"){
+          score++;
+          label.classList.add("correct");
+        } else {
+          label.classList.add("wrong");
+        }
+      }
+
+      if(radio.value === "1"){
+        label.classList.add("correct"); // düzgün cavabı göstər
+      }
+
+      radio.disabled = true;
+    });
+  });
+
+  document.getElementById("result").textContent =
+    `Düzgün cavab sayı: ${score} / ${rendered.length}`;
+}
+
+document.getElementById("checkBtn").addEventListener("click", checkAnswers);
+
+document.addEventListener("DOMContentLoaded", renderQuiz);
+</script>
+
+</body>
+</html>
